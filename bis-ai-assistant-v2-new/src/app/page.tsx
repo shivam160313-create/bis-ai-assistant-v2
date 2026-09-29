@@ -1,69 +1,171 @@
-import Image from "next/image";
+"use client";
+
+import { FormEvent, useState } from "react";
+
+type Message = {
+  role: "user" | "assistant";
+  content: string;
+};
 
 export default function Home() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content:
+        "Namaste! 👋 I’m BIS AI Assistant. Ask me anything about Bureau of Indian Standards, certification, standards, licences, or BIS procedures.",
+    },
+  ]);
+
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function sendMessage(event: FormEvent) {
+    event.preventDefault();
+
+    const message = input.trim();
+
+    if (!message || loading) return;
+
+    setInput("");
+
+    setMessages((current) => [
+      ...current,
+      { role: "user", content: message },
+    ]);
+
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Something went wrong.");
+      }
+
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content: data.answer,
+        },
+      ]);
+    } catch (error) {
+      setMessages((current) => [
+        ...current,
+        {
+          role: "assistant",
+          content:
+            error instanceof Error
+              ? `Sorry, I couldn't process that request. ${error.message}`
+              : "Sorry, I couldn't process that request.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen bg-slate-950 text-white">
+      <div className="mx-auto flex min-h-screen max-w-5xl flex-col">
+        <header className="border-b border-white/10 px-6 py-5">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-xl font-bold">
+              BIS
+            </div>
+
+            <div>
+              <h1 className="text-xl font-semibold">
+                BIS AI Assistant
+              </h1>
+
+              <p className="text-sm text-slate-400">
+                AI-powered assistant for Indian Standards & BIS Services
+              </p>
+            </div>
+
+            <div className="ml-auto flex items-center gap-2 text-sm text-emerald-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              Online
+            </div>
+          </div>
+        </header>
+
+        <section className="flex-1 overflow-y-auto px-4 py-8 sm:px-6">
+          <div className="mx-auto max-w-3xl space-y-5">
+            {messages.map((message, index) => (
+              <div
+                key={index}
+                className={`flex ${
+                  message.role === "user"
+                    ? "justify-end"
+                    : "justify-start"
+                }`}
+              >
+                <div
+                  className={`max-w-[85%] rounded-2xl px-5 py-3 leading-7 ${
+                    message.role === "user"
+                      ? "bg-blue-600 text-white"
+                      : "border border-white/10 bg-white/5 text-slate-200"
+                  }`}
+                >
+                  <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">
+                    {message.role === "user" ? "You" : "BIS AI"}
+                  </div>
+
+                  <div className="whitespace-pre-wrap">
+                    {message.content}
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {loading && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-slate-400">
+                  BIS AI is thinking...
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <div className="border-t border-white/10 p-4 sm:p-6">
+          <form
+            onSubmit={sendMessage}
+            className="mx-auto flex max-w-3xl gap-3"
+          >
+            <input
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="Ask about BIS standards, certification, licences..."
+              disabled={loading}
+              className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-blue-500"
+            />
+
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="rounded-xl bg-blue-600 px-6 py-3 font-medium transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+              {loading ? "..." : "Ask"}
+            </button>
+          </form>
+
+          <p className="mx-auto mt-3 max-w-3xl text-center text-xs text-slate-500">
+            BIS AI Assistant may make mistakes. Verify important
+            regulatory information with official BIS sources.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
